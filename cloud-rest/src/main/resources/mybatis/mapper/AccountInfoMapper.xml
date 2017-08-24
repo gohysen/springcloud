@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gome.iuv.cloud.dao.mapper.AccountInfoMapper">
+    <sql id="columns">
+        gome_id as gomeId,
+        phone_no as phoneNo,
+        mall_address as mallAddress,
+        login_pwd as loginPwd,
+        nick_name as nickName,
+        real_name as realName,
+        user_level as userLevel,
+        register_type as registerType,
+        avatar as avatar,
+        sex as sex,
+        user_sign as userSign,
+        user_area as userArea,
+        birthday as birthday,
+        qr_code as qrCode,
+        safe_phone_no as safePhoneNo,
+        token as token,
+        last_login_time as lastLoginTime,
+        active_status as activeStatus,
+        active_time as activeTime,
+        register_time as registerTime
+    </sql>
+    <insert id="insert" parameterType="com.gome.iuv.cloud.dao.entity.AccountInfoEntity" useGeneratedKeys="true" keyProperty="gomeId">
+      insert into account_info
+      (
+           phone_no,
+           mall_address,
+           login_pwd,
+           nick_name,
+           real_name,
+           user_level,
+           register_type,
+           avatar,
+           sex,
+           user_sign,
+           user_area,
+           birthday,
+           qr_code,
+           safe_phone_no,
+           token,
+           last_login_time,
+           active_status,
+           active_time,
+           created_time,
+           modifyed_time,
+           register_time
+        )
+      VALUES
+      (
+           #{phoneNo},
+           #{mallAddress},
+           #{loginPwd},
+           #{nickName},
+           #{realName},
+           #{userLevel},
+           #{registerType},
+           #{avatar},
+           #{sex},
+           #{userSign},
+           #{userArea},
+           #{birthday},
+           #{qrCode},
+           #{safePhoneNo},
+           #{token},
+           #{lastLoginTime},
+           #{activeStatus},
+           #{activeTime},
+          sysdate(),
+          sysdate(),
+         #{registerTime}
+      )
+    </insert>
+
+    <!--注册绑定前检查重复-->
+    <select id="countAccountByPhoneNo" parameterType="com.gome.iuv.cloud.dao.entity.AccountInfoEntity" resultType="java.lang.Integer">
+        SELECT count(gome_id) FROM account_info
+        WHERE 1 = 1
+        <if test="phoneNo != null and phoneNo != '' "> AND phone_no = #{phoneNo} </if>
+    </select>
+    <!--注册绑定前检查重复-->
+    <select id="countAccountByMallAddress" parameterType="com.gome.iuv.cloud.dao.entity.AccountInfoEntity" resultType="java.lang.Integer">
+        SELECT count(gome_id) FROM account_info
+        WHERE
+        <if test="gomeId != null and gomeId != '' ">gome_id != #{gomeId} and </if>
+        <if test="mallAddress != null and mallAddress != '' ">  mall_address = #{mallAddress} and</if>
+        ( active_status in ('0','4')
+        or (active_status  in('1','3') and <![CDATA[active_time > #{activeTime}]]>) )
+    </select>
+    <!--获取用户信息-->
+    <select id="selectLoginAccount" parameterType="com.gome.iuv.cloud.dao.entity.AccountInfoEntity" resultType="com.gome.iuv.cloud.dao.entity.AccountInfoEntity">
+        SELECT <include refid="columns"/> FROM account_info
+        WHERE 1 = 1
+        AND (<include refid="accCondition"/>)
+        AND login_pwd = #{loginPwd}
+    </select>
+
+    <sql id="accCondition">
+        <trim suffixOverrides="OR">
+            <if test="phoneNo != null and phoneNo != '' ">phone_no = #{phoneNo} OR </if>
+            <if test="mallAddress != null and mallAddress != '' ">(mall_address = #{mallAddress} and (active_status = '0' or active_status='4')) OR</if>
+        </trim>
+    </sql>
+
+    <!--更新密码-->
+    <update id="updatePwd" parameterType="com.gome.iuv.cloud.dao.entity.AccountInfoEntity" >
+        UPDATE account_info
+        SET login_pwd = #{loginPwd}
+        WHERE gome_id = #{gomeId}
+    </update>
+
+    <select id="selectAccount"  resultType="com.gome.iuv.cloud.dao.entity.AccountInfoEntity">
+        select <include refid="columns"/> from account_info
+        WHERE
+        <trim suffixOverrides="and">
+            <if test="phoneNo != null and phoneNo != '' ">phone_no = #{phoneNo} and </if>
+            <if test="token != null and token != '' ">token = #{token} and </if>
+            <if test="gomeId != null and gomeId != '' ">gome_id = #{gomeId} and </if>
+        </trim>
+    </select>
+
+    <select id="selectAccountByMallAddress"  resultType="com.gome.iuv.cloud.dao.entity.AccountInfoEntity">
+        select <include refid="columns"/> from account_info
+        WHERE mall_address = #{0}
+    </select>
+
+
+    <select id="selectAccountByActiveTime"  resultType="com.gome.iuv.cloud.dao.entity.AccountInfoEntity">
+        select <include refid="columns"/> from account_info
+        WHERE <![CDATA[active_time < #{0}]]>
+    </select>
+    <update id="updateAccountInfo" parameterType="com.gome.iuv.cloud.dao.entity.AccountInfoEntity" >
+        UPDATE account_info SET
+            phone_no = #{phoneNo},
+            mall_address = #{mallAddress},
+            safe_phone_no = #{safePhoneNo},
+            nick_name=#{nickName},
+            avatar=#{avatar},
+            sex=#{sex},
+            birthday=#{birthday},
+            user_area=#{userArea},
+            token=#{token},
+           last_login_time=#{lastLoginTime},
+           active_status= #{activeStatus},
+           active_time=#{activeTime},
+           register_time=#{registerTime},
+           modifyed_time=sysdate()
+        WHERE gome_id = #{gomeId}
+    </update>
+
+    <delete id="deleteAccoutByIds" parameterType="long">
+        delete from account_info where gome_id in
+        <foreach item="item" collection="list" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <update id="updateBdList" parameterType="long" >
+        UPDATE account_info SET
+        mall_address = null,
+        active_status= '0',
+        active_time= null,
+        modifyed_time=sysdate()
+        WHERE gome_id in
+        <foreach item="item" collection="list" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+
+    <update id="updateUnbdList" parameterType="long" >
+        UPDATE account_info SET
+        active_status= '0',
+        active_time= null,
+        modifyed_time=sysdate()
+        WHERE gome_id in
+        <foreach item="item" collection="list" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+</mapper>
